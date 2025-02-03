@@ -177,6 +177,7 @@ document.getElementById("decrease-speed").addEventListener("click", () => {
 document.getElementById("restart").addEventListener("click", () => {
   clearInterval(gameInterval);
   clearInterval(timeInterval);
+  paused = false;
   totalTime = 0;
   startTime = Date.now();
   startGame();

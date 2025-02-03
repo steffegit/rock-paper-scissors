@@ -8,6 +8,7 @@ let items = [];
 let gameInterval;
 let timeInterval;
 let paused = false;
+let lastDefeated = null;
 let startTime = Date.now();
 let totalTime = 0;
 
@@ -15,6 +16,7 @@ const speedDisplay = document.querySelector("[data-speed]");
 const scoreDisplay = document.querySelector("[data-score]");
 
 function startGame() {
+  lastDefeated = null;
   items = [];
   for (let i = 0; i < emojis.length; i++) {
     for (let j = 0; j < itemCount; j++) {
@@ -31,7 +33,7 @@ function startGame() {
 }
 
 function drawText(item) {
-  ctx.font = "30px Arial";
+  ctx.font = "30px 'IBM Plex Mono'";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(item.emoji, item.x, item.y);
@@ -52,19 +54,38 @@ function resolveCollision(item1, item2) {
   };
 
   if (rules[item1.emoji] === item2.emoji) {
+    // Record where item2 lost and which element was defeated
+    lastDefeated = { x: item2.x, y: item2.y, emoji: item2.emoji };
     item2.emoji = item1.emoji;
   } else if (rules[item2.emoji] === item1.emoji) {
+    // Record where item1 lost and which element was defeated
+    lastDefeated = { x: item1.x, y: item1.y, emoji: item1.emoji };
     item1.emoji = item2.emoji;
   }
 }
 
-function displayMessage(message) {
+function displayMessage(message, defeatedElement) {
+  // Draw a translucent overlay
+  ctx.save();
+  ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.restore();
+
+  // Draw the winner message
   ctx.font = "30px 'IBM Plex Mono'";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  canvas.style.backgroundColor = "rgba(0, 0, 0, 0.2)";
   ctx.fillText(message, canvas.width / 2, canvas.height / 2);
+
+  // If a defeated element is provided, draw a red border around it.
+  if (defeatedElement) {
+    ctx.strokeStyle = "red";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    // Draw a circle with a fixed radius around the defeat location
+    ctx.arc(defeatedElement.x, defeatedElement.y, 20, 0, 2 * Math.PI);
+    ctx.stroke();
+  }
 }
 
 function draw() {
@@ -100,21 +121,15 @@ function draw() {
     }
   });
 
-  // Check if only two emojis are left and one beats the other
+  // Check if only one emoji remains and display winner
   const remainingEmojis = new Set(items.map((item) => item.emoji));
-  if (remainingEmojis.size === 2) {
-    const [emoji1, emoji2] = [...remainingEmojis];
-    const rules = {
-      "🪨": "✂️",
-      "✂️": "📄",
-      "📄": "🪨",
-    };
-    if (rules[emoji1] === emoji2 || rules[emoji2] === emoji1) {
-      clearInterval(gameInterval);
-      clearInterval(timeInterval);
-      const winner = rules[emoji1] === emoji2 ? emoji1 : emoji2;
-      displayMessage(`${winner} won`);
-    }
+  if (remainingEmojis.size === 1) {
+    clearInterval(gameInterval);
+    clearInterval(timeInterval);
+    const winner = [...remainingEmojis][0];
+    // Capture the final lastDefeated into a local constant so it doesn't change.
+    const finalDefeated = lastDefeated;
+    displayMessage(`${winner} won`, finalDefeated);
   }
 }
 
@@ -131,7 +146,7 @@ function togglePause() {
   paused = !paused;
   const pauseButton = document.getElementById("pause");
   if (paused) {
-    totalTime += (Date.now() - startTime) / 1000;
+    totalTime += (Date.now() - startTime) / 1000; // removed * speed
     clearInterval(timeInterval);
     pauseButton.textContent = "▶️";
   } else {
@@ -143,7 +158,7 @@ function togglePause() {
 
 function updateTime() {
   const currentTime = (Date.now() - startTime) / 1000;
-  scoreDisplay.textContent = (totalTime + currentTime).toFixed(1);
+  scoreDisplay.textContent = (totalTime + currentTime).toFixed(1); // removed * speed
 }
 
 function resizeCanvas() {
@@ -179,6 +194,9 @@ document.getElementById("restart").addEventListener("click", () => {
   clearInterval(timeInterval);
   paused = false;
   totalTime = 0;
+  lastDefeated = null;
+  speed = 1;
+  updateSpeed();
   startTime = Date.now();
   startGame();
   gameInterval = setInterval(draw, 10);

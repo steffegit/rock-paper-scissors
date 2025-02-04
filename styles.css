@@ -57,7 +57,7 @@ h1 {
 .container-col {
   display: flex;
   flex-direction: column;
-  items-align: center;
+  align-items: center;
 }
 
 .container-inside-row {

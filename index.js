@@ -143,6 +143,9 @@ function updateSpeed() {
 }
 
 function togglePause() {
+  const remainingEmojis = new Set(items.map((item) => item.emoji));
+  if(remainingEmojis.size === 1) return; // Don't allow pausing after the game is over
+
   paused = !paused;
   const pauseButton = document.getElementById("pause");
   if (paused) {
